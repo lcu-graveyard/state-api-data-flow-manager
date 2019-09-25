@@ -24,6 +24,15 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Models
         public virtual bool IsCreating { get; set; }
         
         [DataMember]
+        public virtual List<ModulePack> ModulePacks { get; set; }
+        
+        [DataMember]
+        public virtual List<ModuleOption> ModuleOptions { get; set; }
+        
+        [DataMember]
+        public virtual List<ModuleDisplay> ModuleDisplays { get; set; }
+        
+        [DataMember]
         public virtual bool Loading { get; set; }
     }
 }

@@ -63,7 +63,7 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
             logger.LogInformation("Loading Data Flows");
 
             var resp = await appMgr.ListDataFlows(details.EnterpriseAPIKey, state.EnvironmentLookup);
-          
+
             state.DataFlows = resp.Model;
 
             return state;
@@ -74,8 +74,40 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
             logger.LogInformation("Loading Data Flows");
 
             var resp = await entMgr.ListEnvironments(details.EnterpriseAPIKey);
-          
+
             state.EnvironmentLookup = resp.Model?.FirstOrDefault()?.Lookup;
+
+            return state;
+        }
+
+        public virtual async Task<DataFlowManagerState> LoadModulePackSetup()
+        {
+            logger.LogInformation("Loading Data Flows");
+
+            var resp = await appMgr.ListModulePackSetups(details.EnterpriseAPIKey);
+
+            state.ModulePacks = new List<ModulePack>();
+
+            state.ModuleOptions = new List<ModuleOption>();
+
+            state.ModuleDisplays = new List<ModuleDisplay>();
+
+            if (resp.Status)
+            {
+                resp.Model.Each(mps => {
+                    state.ModulePacks = state.ModulePacks.Where(mp => mp.Lookup != mps.Pack.Lookup).ToList();
+
+                    state.ModulePacks.Add(mps.Pack);
+                    
+                    state.ModuleDisplays = state.ModuleDisplays.Where(mp => !mps.Displays.Any(disp => disp.ModuleType == disp.ModuleType)).ToList();
+
+                    state.ModuleDisplays.AddRange(mps.Displays);
+                    
+                    state.ModuleOptions = state.ModuleOptions.Where(mo => !mps.Options.Any(opt => opt.ModuleType == opt.ModuleType)).ToList();
+
+                    state.ModuleOptions.AddRange(mps.Options);
+                });
+            }
 
             return state;
         }
@@ -86,7 +118,10 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
 
             await LoadEnvironment();
 
-            await LoadDataFlows();
+            await WhenAll(
+                LoadDataFlows(),
+                LoadModulePackSetup()
+            );
 
             return state;
         }
@@ -110,7 +145,7 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
 
             return state;
         }
-        
+
         public virtual async Task<DataFlowManagerState> ToggleIsCreating()
         {
             state.IsCreating = !state.IsCreating;
