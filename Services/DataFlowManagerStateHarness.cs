@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Fathym;
 using LCU.Graphs.Registry.Enterprises.DataFlows;
 using LCU.Personas.Client.Applications;
 using LCU.Personas.Client.DevOps;
@@ -94,15 +95,16 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
 
             if (resp.Status)
             {
-                resp.Model.Each(mps => {
+                resp.Model.Each(mps =>
+                {
                     state.ModulePacks = state.ModulePacks.Where(mp => mp.Lookup != mps.Pack.Lookup).ToList();
 
                     state.ModulePacks.Add(mps.Pack);
-                    
+
                     state.ModuleDisplays = state.ModuleDisplays.Where(mp => !mps.Displays.Any(disp => disp.ModuleType == disp.ModuleType)).ToList();
 
                     state.ModuleDisplays.AddRange(mps.Displays);
-                    
+
                     state.ModuleOptions = state.ModuleOptions.Where(mo => !mps.Options.Any(opt => opt.ModuleType == opt.ModuleType)).ToList();
 
                     state.ModuleOptions.AddRange(mps.Options);
@@ -142,6 +144,39 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
             logger.LogInformation($"Setting active data flow to: '{dfLookup}'");
 
             state.ActiveDataFlow = state.DataFlows.FirstOrDefault(df => df.Lookup == dfLookup);
+
+            if (state.ActiveDataFlow != null)
+            {
+                state.ActiveDataFlow.Output = new DataFlowOutput()
+                {
+                    Modules = new List<Module>()
+                    {
+                        new Module()
+                        {
+                            Display = state.ModuleDisplays.FirstOrDefault(md => md.ModuleType == "data-stream"),
+                            Status = Status.Success,
+                            Text = "Data Ingest",
+                            ID = Guid.NewGuid()
+                        },
+                        new Module()
+                        {
+                            Display = state.ModuleDisplays.FirstOrDefault(md => md.ModuleType == "data-map"),
+                            Status = Status.Success,
+                            Text = "Data Map",
+                            ID = Guid.NewGuid()
+                        }
+                    }
+                };
+
+                state.ActiveDataFlow.Output.Streams = new List<ModuleStream>()
+                {
+                    new ModuleStream()
+                    {
+                        InputModuleID = state.ActiveDataFlow.Output.Modules.First().ID,
+                        OutputModuleID = state.ActiveDataFlow.Output.Modules.Last().ID
+                    }
+                };
+            }
 
             return state;
         }
