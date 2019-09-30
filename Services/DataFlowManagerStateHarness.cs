@@ -59,6 +59,20 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
             return await LoadDataFlows();
         }
 
+        public virtual async Task<DataFlowManagerState> DeployDataFlow(string dataFlowLookup)
+        {
+            logger.LogInformation($"Deploying data flow: '{dataFlowLookup}'");
+
+            var resp = await appDev.DeployDataFlow(new Personas.Applications.DeployDataFlowRequest()
+            {
+                DataFlowLookup = dataFlowLookup
+            }, details.EnterpriseAPIKey, state.EnvironmentLookup);
+
+            state.IsCreating = !resp.Status;
+
+            return await LoadDataFlows();
+        }
+
         public virtual async Task<DataFlowManagerState> LoadDataFlows()
         {
             logger.LogInformation("Loading Data Flows");
