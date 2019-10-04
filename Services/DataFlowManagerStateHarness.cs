@@ -113,15 +113,18 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
                 {
                     state.ModulePacks = state.ModulePacks.Where(mp => mp.Lookup != mps.Pack.Lookup).ToList();
 
-                    state.ModulePacks.Add(mps.Pack);
+                    if (mps.Pack != null)
+                        state.ModulePacks.Add(mps.Pack);
 
                     state.ModuleDisplays = state.ModuleDisplays.Where(mp => !mps.Displays.Any(disp => disp.ModuleType == disp.ModuleType)).ToList();
 
-                    state.ModuleDisplays.AddRange(mps.Displays);
+                    if (!mps.Displays.IsNullOrEmpty())
+                        state.ModuleDisplays.AddRange(mps.Displays);
 
                     state.ModuleOptions = state.ModuleOptions.Where(mo => !mps.Options.Any(opt => opt.ModuleType == opt.ModuleType)).ToList();
 
-                    state.ModuleOptions.AddRange(mps.Options);
+                    if (!mps.Options.IsNullOrEmpty())
+                        state.ModuleOptions.AddRange(mps.Options);
                 });
             }
 
