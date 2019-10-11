@@ -81,7 +81,7 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
 
             state.DataFlows = resp.Model;
 
-            return state;
+            return await SetActiveDataFlow(state?.ActiveDataFlow?.Lookup);;
         }
 
         public virtual async Task<DataFlowManagerState> LoadEnvironment()
@@ -164,9 +164,11 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
 
             if (state.ActiveDataFlow != null)
             {
-                state.ActiveDataFlow.Output = new DataFlowOutput()
+                if (state.ActiveDataFlow.Output == null || state.ActiveDataFlow.Output.Modules.IsNullOrEmpty())
                 {
-                    Modules = new List<Module>()
+                    state.ActiveDataFlow.Output = new DataFlowOutput()
+                    {
+                        Modules = new List<Module>()
                     {
                         new Module()
                         {
@@ -204,9 +206,9 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
                             ID = Guid.NewGuid()
                         }
                     }
-                };
+                    };
 
-                state.ActiveDataFlow.Output.Streams = new List<ModuleStream>()
+                    state.ActiveDataFlow.Output.Streams = new List<ModuleStream>()
                 {
                     new ModuleStream()
                     {
@@ -229,6 +231,7 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
                         OutputModuleID = state.ActiveDataFlow.Output.Modules.ElementAt(4).ID
                     }
                 };
+                }
             }
 
             return state;
