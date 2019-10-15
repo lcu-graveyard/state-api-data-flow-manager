@@ -15,6 +15,9 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Models
         public virtual DataFlow ActiveDataFlow { get; set; }
         
         [DataMember]
+        public bool AllowCreationModules { get; set; }
+        
+        [DataMember]
         public virtual List<DataFlow> DataFlows { get; set; }
         
         [DataMember]

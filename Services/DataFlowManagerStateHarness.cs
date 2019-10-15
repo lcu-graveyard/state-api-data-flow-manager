@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Fathym;
+using Fathym.API;
 using LCU.Graphs.Registry.Enterprises.DataFlows;
 using LCU.Personas.Client.Applications;
 using LCU.Personas.Client.DevOps;
 using LCU.Personas.Client.Enterprises;
 using LCU.Personas.Client.Identity;
+using LCU.Personas.Enterprises;
 using LCU.State.API.NapkinIDE.DataFlowManager.Models;
 using LCU.StateAPI;
 using Microsoft.AspNetCore.Http;
@@ -81,7 +83,7 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
 
             state.DataFlows = resp.Model;
 
-            return await SetActiveDataFlow(state?.ActiveDataFlow?.Lookup);;
+            return await SetActiveDataFlow(state?.ActiveDataFlow?.Lookup); ;
         }
 
         public virtual async Task<DataFlowManagerState> LoadEnvironment()
@@ -99,32 +101,78 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
         {
             logger.LogInformation("Loading Data Flows");
 
-            var resp = await appMgr.ListModulePackSetups(details.EnterpriseAPIKey);
+            var mpsResp = await appMgr.ListModulePackSetups(details.EnterpriseAPIKey);
 
             state.ModulePacks = new List<ModulePack>();
 
-            state.ModuleOptions = new List<ModuleOption>();
-
             state.ModuleDisplays = new List<ModuleDisplay>();
 
-            if (resp.Status)
+            state.ModuleOptions = new List<ModuleOption>();
+
+            var moduleOptions = new List<ModuleOption>();
+
+            if (mpsResp.Status)
             {
-                resp.Model.Each(mps =>
+                mpsResp.Model.Each(mps =>
                 {
                     state.ModulePacks = state.ModulePacks.Where(mp => mp.Lookup != mps.Pack.Lookup).ToList();
 
                     if (mps.Pack != null)
                         state.ModulePacks.Add(mps.Pack);
 
-                    state.ModuleDisplays = state.ModuleDisplays.Where(mp => !mps.Displays.Any(disp => disp.ModuleType == disp.ModuleType)).ToList();
+                    state.ModuleDisplays = state.ModuleDisplays.Where(mp => !mps.Displays.Any(disp => disp.ModuleType == mp.ModuleType)).ToList();
 
                     if (!mps.Displays.IsNullOrEmpty())
                         state.ModuleDisplays.AddRange(mps.Displays);
 
-                    state.ModuleOptions = state.ModuleOptions.Where(mo => !mps.Options.Any(opt => opt.ModuleType == opt.ModuleType)).ToList();
+                    moduleOptions = moduleOptions.Where(mo => !mps.Options.Any(opt => opt.ModuleType == mo.ModuleType)).ToList();
 
                     if (!mps.Options.IsNullOrEmpty())
-                        state.ModuleOptions.AddRange(mps.Options);
+                        moduleOptions.AddRange(mps.Options);
+                });
+
+                await moduleOptions.Each(async mo =>
+                {
+                    // var moInfraResp = await entMgr.LoadInfrastructureDetails(details.EnterpriseAPIKey, state.EnvironmentLookup, mo.ModuleType);
+
+                    var moInfraResp = await entMgr.Get<BaseResponse<List<InfrastructureDetails>>>($"environments/{details.EnterpriseAPIKey}/infra/{state.EnvironmentLookup}/details?type={mo.ModuleType}");
+
+                    var moDisp = state.ModuleDisplays.FirstOrDefault(md => md.ModuleType == mo.ModuleType);
+
+                    if (moInfraResp.Status && !moInfraResp.Model.IsNullOrEmpty())
+                    {
+                        moInfraResp.Model.Each(infraDets =>
+                        {
+                            var newMO = mo.JSONConvert<ModuleOption>();
+
+                            newMO.ID = Guid.Empty;
+
+                            newMO.Name = $"{mo.Name} - {infraDets.Name}";
+
+                            newMO.ModuleType = $"{mo.ModuleType}|{infraDets.Group}|{infraDets.Name}";
+
+                            state.ModuleOptions.Add(newMO);
+
+                            var newMODisp = moDisp.JSONConvert<ModuleDisplay>();
+
+                            newMODisp.ModuleType = newMO.ModuleType;
+
+                            state.ModuleDisplays.Add(newMODisp);
+
+                            if (state.AllowCreationModules)
+                            {
+                                state.ModuleOptions.Add(mo);
+
+                                state.ModuleDisplays.Add(moDisp);
+                            }
+                        });
+                    }
+                    else
+                    {
+                        state.ModuleOptions.Add(mo);
+
+                        state.ModuleDisplays.Add(moDisp);
+                    }
                 });
             }
 
@@ -162,79 +210,88 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
 
             state.ActiveDataFlow = state.DataFlows.FirstOrDefault(df => df.Lookup == dfLookup);
 
-            if (state.ActiveDataFlow != null)
-            {
-                if (state.ActiveDataFlow.Output == null || state.ActiveDataFlow.Output.Modules.IsNullOrEmpty())
-                {
-                    state.ActiveDataFlow.Output = new DataFlowOutput()
-                    {
-                        Modules = new List<Module>()
-                    {
-                        new Module()
-                        {
-                            Display = state.ModuleDisplays.FirstOrDefault(md => md.ModuleType == "data-stream"),
-                            Status = Status.Success,
-                            Text = "Data Ingest",
-                            ID = Guid.NewGuid()
-                        },
-                        new Module()
-                        {
-                            Display = state.ModuleDisplays.FirstOrDefault(md => md.ModuleType == "data-map"),
-                            Status = Status.Success,
-                            Text = "Data Map",
-                            ID = Guid.NewGuid()
-                        },
-                        new Module()
-                        {
-                            Display = state.ModuleDisplays.FirstOrDefault(md => md.ModuleType == "cold-storage"),
-                            Status = Status.Success,
-                            Text = "Cold Storage",
-                            ID = Guid.NewGuid()
-                        },
-                        new Module()
-                        {
-                            Display = state.ModuleDisplays.FirstOrDefault(md => md.ModuleType == "warm-storage"),
-                            Status = Status.Success,
-                            Text = "Warm Storage",
-                            ID = Guid.NewGuid()
-                        },
-                        new Module()
-                        {
-                            Display = state.ModuleDisplays.FirstOrDefault(md => md.ModuleType == "hot-storage"),
-                            Status = Status.Success,
-                            Text = "Hot Storage",
-                            ID = Guid.NewGuid()
-                        }
-                    }
-                    };
+            // if (state.ActiveDataFlow != null)
+            // {
+            //     if (state.ActiveDataFlow.Output == null || state.ActiveDataFlow.Output.Modules.IsNullOrEmpty())
+            //     {
+            //         state.ActiveDataFlow.Output = new DataFlowOutput()
+            //         {
+            //             Modules = new List<Module>()
+            //         {
+            //             new Module()
+            //             {
+            //                 Display = state.ModuleDisplays.FirstOrDefault(md => md.ModuleType == "data-stream"),
+            //                 Status = Status.Success,
+            //                 Text = "Data Ingest",
+            //                 ID = Guid.NewGuid()
+            //             },
+            //             new Module()
+            //             {
+            //                 Display = state.ModuleDisplays.FirstOrDefault(md => md.ModuleType == "data-map"),
+            //                 Status = Status.Success,
+            //                 Text = "Data Map",
+            //                 ID = Guid.NewGuid()
+            //             },
+            //             new Module()
+            //             {
+            //                 Display = state.ModuleDisplays.FirstOrDefault(md => md.ModuleType == "cold-storage"),
+            //                 Status = Status.Success,
+            //                 Text = "Cold Storage",
+            //                 ID = Guid.NewGuid()
+            //             },
+            //             new Module()
+            //             {
+            //                 Display = state.ModuleDisplays.FirstOrDefault(md => md.ModuleType == "warm-storage"),
+            //                 Status = Status.Success,
+            //                 Text = "Warm Storage",
+            //                 ID = Guid.NewGuid()
+            //             },
+            //             new Module()
+            //             {
+            //                 Display = state.ModuleDisplays.FirstOrDefault(md => md.ModuleType == "hot-storage"),
+            //                 Status = Status.Success,
+            //                 Text = "Hot Storage",
+            //                 ID = Guid.NewGuid()
+            //             }
+            //         }
+            //         };
 
-                    state.ActiveDataFlow.Output.Streams = new List<ModuleStream>()
-                {
-                    new ModuleStream()
-                    {
-                        InputModuleID = state.ActiveDataFlow.Output.Modules.ElementAt(0).ID,
-                        OutputModuleID = state.ActiveDataFlow.Output.Modules.ElementAt(1).ID
-                    },
-                    new ModuleStream()
-                    {
-                        InputModuleID = state.ActiveDataFlow.Output.Modules.ElementAt(1).ID,
-                        OutputModuleID = state.ActiveDataFlow.Output.Modules.ElementAt(2).ID
-                    },
-                    new ModuleStream()
-                    {
-                        InputModuleID = state.ActiveDataFlow.Output.Modules.ElementAt(1).ID,
-                        OutputModuleID = state.ActiveDataFlow.Output.Modules.ElementAt(3).ID
-                    },
-                    new ModuleStream()
-                    {
-                        InputModuleID = state.ActiveDataFlow.Output.Modules.ElementAt(1).ID,
-                        OutputModuleID = state.ActiveDataFlow.Output.Modules.ElementAt(4).ID
-                    }
-                };
-                }
-            }
+            //         state.ActiveDataFlow.Output.Streams = new List<ModuleStream>()
+            //     {
+            //         new ModuleStream()
+            //         {
+            //             InputModuleID = state.ActiveDataFlow.Output.Modules.ElementAt(0).ID,
+            //             OutputModuleID = state.ActiveDataFlow.Output.Modules.ElementAt(1).ID
+            //         },
+            //         new ModuleStream()
+            //         {
+            //             InputModuleID = state.ActiveDataFlow.Output.Modules.ElementAt(1).ID,
+            //             OutputModuleID = state.ActiveDataFlow.Output.Modules.ElementAt(2).ID
+            //         },
+            //         new ModuleStream()
+            //         {
+            //             InputModuleID = state.ActiveDataFlow.Output.Modules.ElementAt(1).ID,
+            //             OutputModuleID = state.ActiveDataFlow.Output.Modules.ElementAt(3).ID
+            //         },
+            //         new ModuleStream()
+            //         {
+            //             InputModuleID = state.ActiveDataFlow.Output.Modules.ElementAt(1).ID,
+            //             OutputModuleID = state.ActiveDataFlow.Output.Modules.ElementAt(4).ID
+            //         }
+            //     };
+            //     }
+            // }
 
             return state;
+        }
+
+        public virtual async Task<DataFlowManagerState> ToggleCreationModules()
+        {
+            state.AllowCreationModules = !state.AllowCreationModules;
+
+            logger.LogInformation($"Toggling Creation Modules to: '{state.AllowCreationModules}'");
+
+            return await LoadModulePackSetup();
         }
 
         public virtual async Task<DataFlowManagerState> ToggleIsCreating()
