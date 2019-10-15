@@ -133,9 +133,9 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
 
                 await moduleOptions.Each(async mo =>
                 {
-                    // var moInfraResp = await entMgr.LoadInfrastructureDetails(details.EnterpriseAPIKey, state.EnvironmentLookup, mo.ModuleType);
+                    var moInfraResp = await entMgr.LoadInfrastructureDetails(details.EnterpriseAPIKey, state.EnvironmentLookup, mo.ModuleType);
 
-                    var moInfraResp = await entMgr.Get<BaseResponse<List<InfrastructureDetails>>>($"environments/{details.EnterpriseAPIKey}/infra/{state.EnvironmentLookup}/details?type={mo.ModuleType}");
+                    // var moInfraResp = await entMgr.Get<BaseResponse<List<InfrastructureDetails>>>($"environments/{details.EnterpriseAPIKey}/infra/{state.EnvironmentLookup}/details?type={mo.ModuleType}");
 
                     var moDisp = state.ModuleDisplays.FirstOrDefault(md => md.ModuleType == mo.ModuleType);
 
@@ -147,9 +147,9 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
 
                             newMO.ID = Guid.Empty;
 
-                            newMO.Name = $"{mo.Name} - {infraDets.Name}";
+                            newMO.Name = $"{mo.Name} - {infraDets.DisplayName}";
 
-                            newMO.ModuleType = $"{mo.ModuleType}|{infraDets.Group}|{infraDets.Name}";
+                            newMO.ModuleType = infraDets.Lookup;
 
                             state.ModuleOptions.Add(newMO);
 
