@@ -135,11 +135,9 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
                 {
                     var moInfraResp = await entMgr.LoadInfrastructureDetails(details.EnterpriseAPIKey, state.EnvironmentLookup, mo.ModuleType);
 
-                    // var moInfraResp = await entMgr.Get<BaseResponse<List<InfrastructureDetails>>>($"environments/{details.EnterpriseAPIKey}/infra/{state.EnvironmentLookup}/details?type={mo.ModuleType}");
-
                     var moDisp = state.ModuleDisplays.FirstOrDefault(md => md.ModuleType == mo.ModuleType);
 
-                    if (moInfraResp.Status && !moInfraResp.Model.IsNullOrEmpty())
+                    if (mo.ModuleType != "data-map" && moInfraResp.Status && !moInfraResp.Model.IsNullOrEmpty())
                     {
                         moInfraResp.Model.Each(infraDets =>
                         {
