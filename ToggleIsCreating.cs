@@ -27,6 +27,8 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager
         {
             return await req.Manage<ToggleIsCreatingRequest, DataFlowManagerState, DataFlowManagerStateHarness>(log, async (mgr, reqData) =>
             {
+                log.LogInformation($"Toggling Is Creating..");
+
                 return await mgr.ToggleIsCreating();
             });
         }

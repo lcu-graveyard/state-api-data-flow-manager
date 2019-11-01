@@ -30,6 +30,8 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager
         {
             return await req.Manage<SetActiveDataFlowRequest, DataFlowManagerState, DataFlowManagerStateHarness>(log, async (mgr, reqData) =>
             {
+                log.LogInformation($"Setting Active Data Flow: {reqData.DataFlowLookup}");
+
                 return await mgr.SetActiveDataFlow(reqData.DataFlowLookup);
             });
         }

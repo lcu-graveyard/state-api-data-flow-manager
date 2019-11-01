@@ -30,6 +30,8 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager
         {
             return await req.Manage<DeleteDataFlowRequest, DataFlowManagerState, DataFlowManagerStateHarness>(log, async (mgr, reqData) =>
             {
+                log.LogInformation($"Deleting Data Flow: {reqData.DataFlowLookup}");
+                
                 return await mgr.DeleteDataFlow(reqData.DataFlowLookup);
             });
         }

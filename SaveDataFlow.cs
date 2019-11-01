@@ -31,6 +31,8 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager
         {
             return await req.Manage<SaveDataFlowRequest, DataFlowManagerState, DataFlowManagerStateHarness>(log, async (mgr, reqData) =>
             {
+                log.LogInformation($"Saving Data Flow: {reqData.DataFlow.Name}");
+
                 return await mgr.SaveDataFlow(reqData.DataFlow);
             });
         }

@@ -21,6 +21,8 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager
         {
 			return await req.Manage<dynamic, DataFlowManagerState, DataFlowManagerStateHarness>(log, async (mgr, reqData) =>
             {
+                log.LogInformation($"Refreshing..");
+
                 return await mgr.Refresh();
             });
         }
