@@ -52,6 +52,18 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
         #endregion
 
         #region API Methods
+        public virtual async Task<DataFlowManagerState> AddIoTInfrastructure()
+        {
+            logger.LogInformation($"Adding IoT Infrastructure.");
+
+            var resp = await devOpsArch.SetEnvironmentInfrastructure(new Personas.DevOps.SetEnvironmentInfrastructureRequest()
+            {
+                Template = "fathym\\daf-iot-setup"
+            }, details.EnterpriseAPIKey, state.EnvironmentLookup, details.Username);
+
+            return state;
+        }
+
         public virtual async Task<DataFlowManagerState> DeleteDataFlow(string dataFlowLookup)
         {
             logger.LogInformation($"Deleting data flow: '{dataFlowLookup}'");
@@ -88,7 +100,7 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
 
         public virtual async Task<DataFlowManagerState> LoadEnvironment()
         {
-            logger.LogInformation("Loading Data Flows");
+            logger.LogInformation("Loading Envirnment");
 
             var resp = await entMgr.ListEnvironments(details.EnterpriseAPIKey);
 
@@ -101,7 +113,7 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
         {
             logger.LogInformation("Loading Data Flows");
 
-            var mpsResp = await appMgr.ListModulePackSetups(details.EnterpriseAPIKey);
+            var mpsResp = await appMgr.ListModulePackSetups(details.EnterpriseAPIKey, details.Host);
 
             state.ModulePacks = new List<ModulePack>();
 
@@ -157,15 +169,15 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
 
                             state.ModuleDisplays.Add(newMODisp);
 
-                            if (state.AllowCreationModules)
-                            {
-                                state.ModuleOptions.Add(mo);
+                            // if (state.AllowCreationModules)
+                            // {
+                            //     state.ModuleOptions.Add(mo);
 
-                                state.ModuleDisplays.Add(moDisp);
-                            }
+                            //     state.ModuleDisplays.Add(moDisp);
+                            // }
                         });
                     }
-                    else
+                    else if (mo.ModuleType == "data-map")
                     {
                         state.ModuleOptions.Add(mo);
 
@@ -183,17 +195,16 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
 
             await LoadEnvironment();
 
-            await WhenAll(
-                LoadDataFlows(),
-                LoadModulePackSetup()
-            );
+            await LoadDataFlows();
+
+            await LoadModulePackSetup();
 
             return state;
         }
 
         public virtual async Task<DataFlowManagerState> SaveDataFlow(DataFlow dataFlow)
         {
-            logger.LogInformation($"Saving data flow: '{dataFlow?.Lookup}'");
+            logger.LogInformation($"Saving data flow '{dataFlow?.Lookup}' for {state.EnvironmentLookup}");
 
             var resp = await appMgr.SaveDataFlow(dataFlow, details.EnterpriseAPIKey, state.EnvironmentLookup);
 
