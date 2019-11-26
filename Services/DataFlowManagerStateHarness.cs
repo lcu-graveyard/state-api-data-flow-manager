@@ -197,8 +197,6 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
 
             await LoadDataFlows();
 
-            await LoadModulePackSetup();
-
             return state;
         }
 
@@ -219,77 +217,8 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
 
             state.ActiveDataFlow = state.DataFlows.FirstOrDefault(df => df.Lookup == dfLookup);
 
-            // if (state.ActiveDataFlow != null)
-            // {
-            //     if (state.ActiveDataFlow.Output == null || state.ActiveDataFlow.Output.Modules.IsNullOrEmpty())
-            //     {
-            //         state.ActiveDataFlow.Output = new DataFlowOutput()
-            //         {
-            //             Modules = new List<Module>()
-            //         {
-            //             new Module()
-            //             {
-            //                 Display = state.ModuleDisplays.FirstOrDefault(md => md.ModuleType == "data-stream"),
-            //                 Status = Status.Success,
-            //                 Text = "Data Ingest",
-            //                 ID = Guid.NewGuid()
-            //             },
-            //             new Module()
-            //             {
-            //                 Display = state.ModuleDisplays.FirstOrDefault(md => md.ModuleType == "data-map"),
-            //                 Status = Status.Success,
-            //                 Text = "Data Map",
-            //                 ID = Guid.NewGuid()
-            //             },
-            //             new Module()
-            //             {
-            //                 Display = state.ModuleDisplays.FirstOrDefault(md => md.ModuleType == "cold-storage"),
-            //                 Status = Status.Success,
-            //                 Text = "Cold Storage",
-            //                 ID = Guid.NewGuid()
-            //             },
-            //             new Module()
-            //             {
-            //                 Display = state.ModuleDisplays.FirstOrDefault(md => md.ModuleType == "warm-storage"),
-            //                 Status = Status.Success,
-            //                 Text = "Warm Storage",
-            //                 ID = Guid.NewGuid()
-            //             },
-            //             new Module()
-            //             {
-            //                 Display = state.ModuleDisplays.FirstOrDefault(md => md.ModuleType == "hot-storage"),
-            //                 Status = Status.Success,
-            //                 Text = "Hot Storage",
-            //                 ID = Guid.NewGuid()
-            //             }
-            //         }
-            //         };
-
-            //         state.ActiveDataFlow.Output.Streams = new List<ModuleStream>()
-            //     {
-            //         new ModuleStream()
-            //         {
-            //             InputModuleID = state.ActiveDataFlow.Output.Modules.ElementAt(0).ID,
-            //             OutputModuleID = state.ActiveDataFlow.Output.Modules.ElementAt(1).ID
-            //         },
-            //         new ModuleStream()
-            //         {
-            //             InputModuleID = state.ActiveDataFlow.Output.Modules.ElementAt(1).ID,
-            //             OutputModuleID = state.ActiveDataFlow.Output.Modules.ElementAt(2).ID
-            //         },
-            //         new ModuleStream()
-            //         {
-            //             InputModuleID = state.ActiveDataFlow.Output.Modules.ElementAt(1).ID,
-            //             OutputModuleID = state.ActiveDataFlow.Output.Modules.ElementAt(3).ID
-            //         },
-            //         new ModuleStream()
-            //         {
-            //             InputModuleID = state.ActiveDataFlow.Output.Modules.ElementAt(1).ID,
-            //             OutputModuleID = state.ActiveDataFlow.Output.Modules.ElementAt(4).ID
-            //         }
-            //     };
-            //     }
-            // }
+            if (state.ActiveDataFlow != null)
+                await LoadModulePackSetup();
 
             return state;
         }
