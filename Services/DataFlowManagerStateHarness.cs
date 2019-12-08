@@ -14,6 +14,7 @@ using LCU.State.API.NapkinIDE.DataFlowManager.Models;
 using LCU.StateAPI;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
 
 namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
 {
@@ -60,6 +61,21 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
             {
                 Template = "fathym\\daf-iot-setup"
             }, details.EnterpriseAPIKey, state.EnvironmentLookup, details.Username);
+
+            return state;
+        }
+
+        public virtual async Task<DataFlowManagerState> CheckActiveDataFlowStatus()
+        {
+            logger.LogInformation("Loading Data Flows");
+
+            var resp = await appDev.CheckDataFlowStatus(new Personas.Applications.CheckDataFlowStatusRequest()
+            {
+                DataFlow = state.ActiveDataFlow,
+                Type = Personas.Applications.DataFlowStatusTypes.QuickView
+            }, details.EnterpriseAPIKey, state.EnvironmentLookup);
+
+            state.ActiveDataFlow = resp.DataFlow;
 
             return state;
         }
@@ -135,12 +151,24 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
                     state.ModuleDisplays = state.ModuleDisplays.Where(mp => !mps.Displays.Any(disp => disp.ModuleType == mp.ModuleType)).ToList();
 
                     if (!mps.Displays.IsNullOrEmpty())
-                        state.ModuleDisplays.AddRange(mps.Displays);
+                        state.ModuleDisplays.AddRange(mps.Displays.Select(md =>
+                        {
+                            md.Element = $"{mps.Pack.Lookup}-{md.ModuleType}-element";
+
+                            md.Toolkit = $"https://{details.Host}{mps.Pack.Toolkit}";
+
+                            return md;
+                        }));
 
                     moduleOptions = moduleOptions.Where(mo => !mps.Options.Any(opt => opt.ModuleType == mo.ModuleType)).ToList();
 
                     if (!mps.Options.IsNullOrEmpty())
-                        moduleOptions.AddRange(mps.Options);
+                        moduleOptions.AddRange(mps.Options.Select(mo =>
+                        {
+                            mo.Settings = new MetadataModel();
+
+                            return mo;
+                        }));
                 });
 
                 await moduleOptions.Each(async mo =>
@@ -159,7 +187,7 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
 
                             newMO.Name = $"{mo.Name} - {infraDets.DisplayName}";
 
-                            newMO.ModuleType = infraDets.Lookup;
+                            newMO.Settings.Metadata["Infrastructure"] = infraDets.JSONConvert<JToken>();
 
                             state.ModuleOptions.Add(newMO);
 
@@ -197,6 +225,8 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
 
             await LoadDataFlows();
 
+            await LoadModulePackSetup();
+
             return state;
         }
 
@@ -218,7 +248,12 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
             state.ActiveDataFlow = state.DataFlows.FirstOrDefault(df => df.Lookup == dfLookup);
 
             if (state.ActiveDataFlow != null)
-                await LoadModulePackSetup();
+            {
+                //  Trying on refresh only...
+                // await LoadModulePackSetup();
+
+                await CheckActiveDataFlowStatus();
+            }
 
             return state;
         }
