@@ -67,7 +67,7 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
 
         public virtual async Task<DataFlowManagerState> CheckActiveDataFlowStatus()
         {
-            logger.LogInformation("Loading Data Flows");
+            logger.LogInformation("Checking Active Data Flow Status");
 
             var resp = await appDev.CheckDataFlowStatus(new Personas.Applications.CheckDataFlowStatusRequest()
             {
@@ -127,7 +127,7 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
 
         public virtual async Task<DataFlowManagerState> LoadModulePackSetup()
         {
-            logger.LogInformation("Loading Data Flows");
+            logger.LogInformation("Loading Module Pack Setup");
 
             var mpsResp = await appMgr.ListModulePackSetups(details.EnterpriseAPIKey, details.Host);
 
@@ -171,13 +171,15 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
                         }));
                 });
 
+                var nonInfraModuleTypes = new[] { "data-map", "data-emulator", "warm-query" };
+
                 await moduleOptions.Each(async mo =>
                 {
                     var moInfraResp = await entMgr.LoadInfrastructureDetails(details.EnterpriseAPIKey, state.EnvironmentLookup, mo.ModuleType);
 
                     var moDisp = state.ModuleDisplays.FirstOrDefault(md => md.ModuleType == mo.ModuleType);
 
-                    if (mo.ModuleType != "data-map" && moInfraResp.Status && !moInfraResp.Model.IsNullOrEmpty())
+                    if (!nonInfraModuleTypes.Contains(mo.ModuleType) && moInfraResp.Status && !moInfraResp.Model.IsNullOrEmpty())
                     {
                         moInfraResp.Model.Each(infraDets =>
                         {
@@ -205,7 +207,7 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
                             // }
                         });
                     }
-                    else if (mo.ModuleType == "data-map")
+                    else if (nonInfraModuleTypes.Contains(mo.ModuleType))
                     {
                         state.ModuleOptions.Add(mo);
 
