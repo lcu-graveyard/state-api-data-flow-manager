@@ -125,6 +125,15 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Services
             return state;
         }
 
+        public virtual async Task LoadInfrastructure(EnterpriseManagerClient entMgr, string entApiKey, string envLookup, string type)
+        {
+            logger.LogInformation("Loading infrastructure details");
+
+            var regHosts = await entMgr.LoadInfrastructureDetails(entApiKey, envLookup, type);
+
+            state.InfrastructureDetails = regHosts.Model;
+        }
+
         public virtual async Task<DataFlowManagerState> LoadModulePackSetup()
         {
             logger.LogInformation("Loading Module Pack Setup");

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.Serialization;
 using Fathym;
 using LCU.Graphs.Registry.Enterprises.DataFlows;
+using LCU.Personas.Enterprises;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
@@ -22,6 +23,10 @@ namespace LCU.State.API.NapkinIDE.DataFlowManager.Models
         
         [DataMember]
         public virtual string EnvironmentLookup { get; set; }
+
+        
+        [DataMember]
+        public virtual List<InfrastructureDetails> InfrastructureDetails { get; set; }
         
         [DataMember]
         public virtual bool IsCreating { get; set; }
